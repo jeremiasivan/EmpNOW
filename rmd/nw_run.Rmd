@@ -77,7 +77,7 @@ if (length(params$window_size) > 0){
 
 # get factors of the alignment length
 sfactors <- getFactors(s_ln)
-sfactors <- sfactors[-wsize]
+sfactors[!sfactors %in% wsize]
 
 indices <- seq(1, length(sfactors), length.out = params$window_len-length(wsize))
 wsize <- c(wsize, sfactors[indices])
