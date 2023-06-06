@@ -30,6 +30,10 @@ options(scipen=999)
 s <- NULL
 s_ln <- 0
 
+ws_len <- length(params$window_size)
+lcm <- 0
+fct <- 0
+
 if (!file.exists(fn_fasta) || params$redo) {
   # read fasta file
   s <- seqinr::read.fasta(params$input_aln, whole.header = T)
@@ -37,8 +41,17 @@ if (!file.exists(fn_fasta) || params$redo) {
   write.table(paste0("Number of sites: ", s_ln, "bp"),
               file=fn_log, quote=F, row.names=F, col.names=F, append=T)
   
-  if (params$round_len < 0) {
-    s_ln <- round(s_ln, params$round_len)
+  # count the LCM
+  if (ws_len >= 2) {
+    lcm <- numbers::mLCM(params$window_size)
+    fct <- floor(s_ln / lcm)
+  } else if (ws_len == 1) {
+    lcm <- params$window_size[1]
+    fct <- floor(s_ln / lcm)
+  }
+  
+  if (fct >= 0) {
+    s_ln <- fct*lcm
     
     # extract the sites
     s <- lapply(s, function(x) x[seq(from = 1, to = s_ln)])
@@ -47,7 +60,8 @@ if (!file.exists(fn_fasta) || params$redo) {
     
     # save the alignment in window folder
     seqinr::write.fasta(sequences=s, names=names(s), file.out=fn_fasta, nbchar=100)
-    write.table(paste0("Updated number of sites: ", s_ln, "bp"),
+    write.table(c(paste("Least Common Multiple (LCM):", lcm),
+                  paste0("Updated number of sites: ", s_ln, "bp")),
                 file=fn_log, quote=F, row.names=F, col.names=F, append=T)
     
   } else {
@@ -62,18 +76,7 @@ if (!file.exists(fn_fasta) || params$redo) {
 }
 
 # filter window sizes
-wsize <- c()
-if (length(params$window_size) > 0){
-  for (w in params$window_size) {
-    if (s_ln %% w != 0) {
-      msg <- paste0("Warning: ", s_ln, " is not divisible by ", w, ". Skipped.")
-      log4r::warn(fn_logger, msg)
-      next
-    }
-    
-    wsize <- c(wsize, w)
-  }
-}
+wsize <- params$window_size
 
 # get factors of the alignment length
 sfactors <- getFactors(s_ln)

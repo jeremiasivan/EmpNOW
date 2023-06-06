@@ -14,7 +14,6 @@ params:
   
   # NOW analysis
   input_aln: "~/input.fa"
-  round_len: -4
   
   window_len: 20
   window_size: !r c(50000)
@@ -25,6 +24,7 @@ params:
 # install.packages("forcats")
 # install.packages("ggplot2")
 # install.packages("log4r")
+# install.packages("numbers)
 # install.packages("seqinr")
 # install.packages("stringr")
 
@@ -67,6 +67,9 @@ getFactors <- function(x) {
 ```
 
 ```{r child = paste(params$rmddir,"/nw_run.Rmd",sep=""), include=FALSE}
+```
+
+```{r child = paste(params$rmddir,"/nw_summary.Rmd",sep=""), include=FALSE}
 ```
 
 ```{r, include=FALSE}
