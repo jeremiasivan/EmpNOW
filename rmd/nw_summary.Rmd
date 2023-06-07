@@ -20,7 +20,7 @@ fn_summary <- paste0(window_outdir, params$prefix, ".sum")
 t_accuracy <- c()
 
 # iterate through window sizes
-for (i in window_sizes) {
+for (i in stringr::str_sort(window_sizes, numeric=TRUE)) {
   fn_iqtree <- paste0(window_outdir,i,"/trees/",params$prefix,".iqtree")
 
   # extract information of interest
@@ -38,12 +38,15 @@ data.table::fwrite(t_accuracy, file=fn_summary, quote=F, sep="\t")
 log4r::info(fn_logger, paste0("File created/modified: summary table of NOW (", params$prefix, ".sum)."))
 
 # plot information criterion vs window size
+t_accuracy$window_size <- factor(t_accuracy$window_size, levels=t_accuracy$window_size)
+
+library(ggplot2)
 for (i in 2:ncol(t_accuracy)) {
-  ifc <- colnames(simsum)[i]
+  ifc <- colnames(t_accuracy)[i]
   fn_simfig <- paste0(window_outdir, params$prefix, ".sum_",ifc,".tiff")
   
   tiff(filename=fn_simfig, units="px", width=2880, height=1800)
-  print(ggplot(t_accuracy, aes(x=window_size, y=unlist(simsum[,..i]))) +
+  print(ggplot(t_accuracy, aes(x=window_size, y=as.numeric(unlist(t_accuracy[,..i])), group=1)) +
           geom_line(aes(size=1, alpha=0.2)) +
           geom_point(aes(colour=window_size, size=20)) +
           viridis::scale_color_viridis(discrete = TRUE) +
