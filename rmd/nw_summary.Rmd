@@ -28,7 +28,7 @@ for (i in window_sizes) {
   aicc <- gsub("^.* ", "", system(paste("grep '^Corrected Akaike information criterion'",fn_iqtree), intern = T))
   bic <- gsub("^.* ", "", system(paste("grep '^Bayesian information criterion'",fn_iqtree), intern = T))
   
-  t_accuracy <- rbind(t_accuracy, c(as.numeric(i)/1000,acc,aic,aicc,bic))
+  t_accuracy <- rbind(t_accuracy, c(as.numeric(i)/1000,aic,aicc,bic))
 }
 
 t_accuracy <- data.table::as.data.table(t_accuracy)
