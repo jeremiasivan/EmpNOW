@@ -10,7 +10,7 @@ write.table(c("",
             file=fn_log, quote=F, row.names=F, col.names=F, append=T)
 
 window_outdir <- paste0(getwd(), "/windows/")
-window_sizes <- list.dirs(window_outdir, full.names = F, recursive = F)
+window_sizes <- stringr::str_sort(list.dirs(window_outdir, full.names=F, recursive=F), numeric=TRUE)
 
 # output files
 fn_summary <- paste0(window_outdir, params$prefix, ".sum")
@@ -21,7 +21,7 @@ fn_topdist_tiff <- paste0(window_outdir, params$prefix, ".topdist.tiff")
 t_accuracy <- c()
 
 # iterate through window sizes
-for (i in stringr::str_sort(window_sizes, numeric=TRUE)) {
+for (i in window_sizes) {
   fn_iqtree <- paste0(window_outdir,i,"/trees/",params$prefix,".iqtree")
 
   # extract information of interest
@@ -72,7 +72,7 @@ for (i in 2:ncol(t_accuracy)) {
 top_dist <- data.table::data.table(wsize=character(), topology=character(), proportion=numeric())
 
 # iterate through window sizes
-for (i in stringr::str_sort(window_sizes, numeric=TRUE)) {
+for (i in window_sizes) {
   fn_topsum <- paste0(window_outdir,i,"/summary/",params$prefix,".topsum")
 
   dt_temp <- data.table::fread(fn_topsum)
@@ -85,6 +85,8 @@ for (i in stringr::str_sort(window_sizes, numeric=TRUE)) {
 }
 
 # visualization
+top_dist$wsize <- factor(top_dist$wsize, levels=as.numeric(window_sizes)/1000)
+
 library(ggplot2)
 tiff(filename=fn_topdist_tiff, units="px", width=2880, height=1800)
 print(ggplot(top_dist, aes(x=wsize, y=proportion, fill=topology)) +

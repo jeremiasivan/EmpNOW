@@ -36,7 +36,10 @@ fct <- 0
 
 if (!file.exists(fn_fasta) || params$redo) {
   # read fasta file
-  s <- seqinr::read.fasta(params$input_aln, whole.header = T)
+  fasta <- seqinr::read.fasta(params$input_aln, whole.header = T)
+  empty_columns <- which(fasta[[1]] == " ")
+  s <- lapply(fasta, function(x) {x[-empty_columns]})
+  
   s_ln <- seqinr::getLength(s)[1]
   write.table(paste0("Number of sites: ", s_ln, "bp"),
               file=fn_log, quote=F, row.names=F, col.names=F, append=T)
@@ -63,11 +66,12 @@ if (!file.exists(fn_fasta) || params$redo) {
     write.table(c(paste("Least Common Multiple (LCM):", lcm),
                   paste0("Updated number of sites: ", s_ln, "bp")),
                 file=fn_log, quote=F, row.names=F, col.names=F, append=T)
-    
   } else {
     # copy the input alignment to window folder
     system(paste("cp", params$input_aln, fn_fasta))
   }
+  
+  rm(fasta)
 
 } else {
   # read the input alignment
