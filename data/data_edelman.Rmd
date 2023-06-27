@@ -61,8 +61,6 @@ doSNOW::registerDoSNOW(nwcl)
 
 # loop over chromosome
 for (c in unique(refseq$chr)) {
-  ls_fasta <- c()
-
   # create directories
   chr_dir <- paste0(params$outdir, "/", c, "/")
   if (!dir.exists(chr_dir)) {
@@ -98,7 +96,7 @@ for (c in unique(refseq$chr)) {
   subref <- subset(refseq, chr==c)
   
   # loop over reference sequence
-  foreach (i=1:nrow(subref)) %dopar% {
+  ls_fasta <- foreach (i=1:nrow(subref), .combine='c') %dopar% {
     prefix <- paste0(subref$chr[i], "_", subref$n[i])
     
     # filenames
@@ -107,6 +105,10 @@ for (c in unique(refseq$chr)) {
     fn_copy <- paste0(copy_dir, prefix, "_singleCopy.maf")
     fn_sort <- paste0(sort_dir, prefix, "_sorted.maf")
     fn_fasta <- paste0(fasta_dir, prefix, ".fa")
+    
+    if(all(file.exists(fn_raw, fn_copy, fn_sort, fn_fasta))) {
+      return(fn_fasta)
+    }
     
     # run hal2maf
     cmd <- paste(params$dir_hal2maf,
@@ -134,7 +136,7 @@ for (c in unique(refseq$chr)) {
     log4r::info(fn_logger, paste("Run:", cmd))
     system(cmd)
     
-    ls_fasta <- c(ls_fasta, fn_fasta)
+    return(fn_fasta)
   }
   
   # concatenation of fastas
