@@ -11,6 +11,7 @@ params:
   dir_mafsort: ""
   dir_msaview: ""
   dir_iqtree2: ""
+  dir_seqkit: ""
 ---
 
 ```{r, include=FALSE}
@@ -40,6 +41,8 @@ knitr::opts_knit$set(root.dir = params$outdir)
 ```
 
 ```{r run, include=FALSE}
+ls_concat <- c()
+
 # check if input files exist
 if (!all(file.exists(params$fn_hal, params$fn_refseq))) {
   log4r::error(fn_logger, "Error: input files are not found. Exited.")
@@ -59,8 +62,6 @@ doSNOW::registerDoSNOW(nwcl)
 # loop over chromosome
 for (c in unique(refseq$chr)) {
   ls_fasta <- c()
-  write.table(c("", toupper(c)),
-              file=fn_log, quote=F, row.names=F, col.names=F)
 
   # create directories
   chr_dir <- paste0(params$outdir, "/", c, "/")
@@ -147,7 +148,27 @@ for (c in unique(refseq$chr)) {
   
   system(cmd)
   system(paste(params$dir_iqtree2, "-s", fn_concat))
+  
+  ls_concat <- c(ls_concat, fn_concat)
 }
+
+# concatenation of all chromosomes
+write.table(c("", "ALL"),
+              file=fn_log, quote=F, row.names=F, col.names=F)
+
+all_dir <- paste0(params$outdir, "/chr_all/")
+if (!dir.exists(all_dir)) {
+  dir.create(all_dir, recursive=T)
+}
+
+fn_concat_all <- paste0(all_dir, "all_concat.fa")
+
+str_concat <- paste(ls_concat, collapse = " ")
+cmd <- paste(params$dir_seqkit, "concat", str_concat, ">", fn_concat_all)
+log4r::info(fn_logger, paste("Run:", cmd))
+
+system(cmd)
+system(paste(params$dir_iqtree2, "-s", fn_concat_all))
 
 stopCluster(nwcl)
 ```
