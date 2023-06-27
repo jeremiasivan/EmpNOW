@@ -1,0 +1,162 @@
+---
+title: "Data Preparation for Edelman et al. (2019)"
+params:
+  fn_hal: ""
+  fn_refseq: ""
+  thread: 1
+  outdir: ""
+  
+  dir_hal2maf: ""
+  dir_singleCopy: ""
+  dir_mafsort: ""
+  dir_msaview: ""
+  dir_iqtree2: ""
+---
+
+```{r, include=FALSE}
+# store initial system time
+sys_tic <- Sys.time()
+
+# load libraries
+library(doSNOW)
+library(dplyr)
+library(tidyr)
+
+# create outdir
+if (!dir.exists(params$outdir)) {
+  dir.create(params$outdir, recursive = T)
+}
+
+# create log file
+fn_log <- paste0(params$outdir, "/edelman.log")
+log_appender <- log4r::file_appender(fn_log, append = TRUE, layout = log4r::default_log_layout())
+fn_logger <- log4r::logger(threshold = "INFO", appenders = log_appender)
+
+if (!file.exists(fn_log)) {
+  write.table("EmpNOW", file=fn_log, quote=F, row.names=F, col.names=F)
+}
+
+knitr::opts_knit$set(root.dir = params$outdir)
+```
+
+```{r run, include=FALSE}
+# check if input files exist
+if (!all(file.exists(params$fn_hal, params$fn_refseq))) {
+  log4r::error(fn_logger, "Error: input files are not found. Exited.")
+  knitr::knit_exit()
+}
+
+# open reference sequence file
+refseq <- read.delim(params$fn_refseq, header=F, col.names="refseq")
+refseq <- refseq %>%
+  separate(refseq, c("ref","chr","n"), sep="_", remove=F) %>%
+  select(-ref)
+
+# create doSNOW cluster
+nwcl <- makeCluster(params$thread)
+doSNOW::registerDoSNOW(nwcl)
+
+# loop over chromosome
+for (c in unique(refseq$chr)) {
+  ls_fasta <- c()
+  write.table(c("", toupper(c)),
+              file=fn_log, quote=F, row.names=F, col.names=F)
+
+  # create directories
+  chr_dir <- paste0(params$outdir, "/", c, "/")
+  if (!dir.exists(chr_dir)) {
+    dir.create(chr_dir, recursive=T)
+  }
+  
+  raw_dir <- paste0(chr_dir, "raw/")
+  if (!dir.exists(raw_dir)) {
+    dir.create(raw_dir, recursive=T)
+  }
+  
+  copy_dir <- paste0(chr_dir, "singleCopy/")
+  if (!dir.exists(copy_dir)) {
+    dir.create(copy_dir, recursive=T)
+  }
+  
+  sort_dir <- paste0(chr_dir, "sorted/")
+  if (!dir.exists(sort_dir)) {
+    dir.create(sort_dir, recursive=T)
+  }
+  
+  fasta_dir <- paste0(chr_dir, "fasta/")
+  if (!dir.exists(fasta_dir)) {
+    dir.create(fasta_dir, recursive=T)
+  }
+  
+  concat_dir <- paste0(fasta_dir, "concatenation/")
+  if (!dir.exists(concat_dir)) {
+    dir.create(concat_dir, recursive=T)
+  }
+  
+  # subset reference sequences based on chromosome
+  subref <- subset(refseq, chr==c)
+  
+  # loop over reference sequence
+  foreach (i=1:nrow(subref)) %dopar% {
+    prefix <- paste0(subref$chr[i], "_", subref$n[i])
+    
+    # filenames
+    fn_raw <- paste0(raw_dir, prefix, ".maf")
+    fn_raw_copy <- paste0(raw_dir, prefix, "_singleCopy.maf")
+    fn_copy <- paste0(copy_dir, prefix, "_singleCopy.maf")
+    fn_sort <- paste0(sort_dir, prefix, "_sorted.maf")
+    fn_fasta <- paste0(fasta_dir, prefix, ".fa")
+    
+    # run hal2maf
+    cmd <- paste(params$dir_hal2maf,
+                 "--refGenome HeraRef",
+                 "--targetGenomes Hdem,Hsar,Hhim,Hhsa,Htel,HmelRef",
+                 "--refSequence", subref$refseq[i],
+                 params$fn_hal, fn_raw)
+    log4r::info(fn_logger, paste("Run:", cmd))
+    system(cmd)
+    
+    # run singleCopy
+    cmd <- paste("python3", params$dir_singleCopy, fn_raw)
+    log4r::info(fn_logger, paste("Run:", cmd))
+    
+    system(cmd)
+    system(paste("mv", fn_raw_copy, fn_copy))
+    
+    # run maf-sort
+    cmd <- paste(params$dir_mafsort, fn_copy, ">", fn_sort)
+    log4r::info(fn_logger, paste("Run:", cmd))
+    system(cmd)
+    
+    # run msa_view
+    cmd <- paste(params$dir_msaview, fn_sort, "-i MAF -m -G 1 >", fn_fasta)
+    log4r::info(fn_logger, paste("Run:", cmd))
+    system(cmd)
+    
+    ls_fasta <- c(ls_fasta, fn_fasta)
+  }
+  
+  # concatenation of fastas
+  fn_concat <- paste0(concat_dir, c, "_concat.fa")
+  
+  str_fasta <- paste(ls_fasta, collapse = " ")
+  cmd <- paste(params$dir_msaview,
+                "--aggregate HmelRef,HeraRef,Hhim,Hhsa,Htel,Hdem,Hsar",
+                str_fasta, ">", fn_concat)
+  log4r::info(fn_logger, paste("Run:", cmd))
+  
+  system(cmd)
+  system(paste(params$dir_iqtree2, "-s", fn_concat))
+}
+
+stopCluster(nwcl)
+```
+
+```{r, include=FALSE}
+# store final system time
+sys_toc <- Sys.time()
+
+# write the system time in log file
+write.table(c("", paste0("Total elapsed time: ", round(as.numeric(difftime(sys_toc, sys_tic, units = "mins")), 3), " mins")),
+            file=fn_log, quote=F, row.names=F, col.names=F, append=T)
+```

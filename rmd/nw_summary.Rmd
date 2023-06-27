@@ -90,7 +90,7 @@ top_dist$wsize <- factor(top_dist$wsize, levels=as.numeric(window_sizes)/1000)
 library(ggplot2)
 tiff(filename=fn_topdist_tiff, units="px", width=2880, height=1800)
 print(ggplot(top_dist, aes(x=wsize, y=proportion, fill=topology)) +
-        geom_bar(position="stack", stat="identity") +
+        geom_bar(position="stack", stat="identity", colour="red") +
         viridis::scale_fill_viridis(discrete = TRUE) +
         ggtitle("Topology Distribution of Different NOW Window Size") + ylab("Proportion") + xlab("Window Size (kb)") +
         guides(fill="none") +
