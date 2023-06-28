@@ -57,7 +57,7 @@ for (c in ls_chr) {
   out <- paste0(run_outdir,"/",c,"/",c,".html")
   
   currentdir <- paste0(run_outdir,"/",c,"/")
-  if (!file.exists(currentdir)) {
+  if (!dir.exists(currentdir)) {
     dir.create(currentdir, recursive = T)
   }
   
@@ -66,7 +66,7 @@ for (c in ls_chr) {
                       paste0(run_outdir,"/gblocks/",c,"_concat.fa-gb"))
   
   temprun <- list(out=out, params=list(rmddir=rmddir,
-                                       prefix=c, outdir=currentdir, thread=thread, redo=redo,
+                                       prefix=c, outdir=run_outdir, thread=thread, redo=redo,
                                        iqtree2dir=dir_iqtree2, outgroup=outgroup,
                                        input_aln=input_aln, window_len=window_len, window_size=window_size
   ))
