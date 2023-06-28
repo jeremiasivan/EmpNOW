@@ -62,7 +62,7 @@ getFactors <- function(x) {
   x <- as.integer(x)
   div <- seq_len(abs(x))
   factors <- div[x %% div == 0L]
-  return(factors[factors >= 100])
+  return(factors[factors >= 1000])
 }
 ```
 

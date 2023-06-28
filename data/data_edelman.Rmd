@@ -29,7 +29,7 @@ if (!dir.exists(params$outdir)) {
 }
 
 # create log file
-fn_log <- paste0(params$outdir, "/edelman.log")
+fn_log <- paste0(params$outdir, "/data_edelman.log")
 log_appender <- log4r::file_appender(fn_log, append = TRUE, layout = log4r::default_log_layout())
 fn_logger <- log4r::logger(threshold = "INFO", appenders = log_appender)
 
@@ -61,6 +61,8 @@ doSNOW::registerDoSNOW(nwcl)
 
 # loop over chromosome
 for (c in unique(refseq$chr)) {
+  write.table(c("", toupper(c)), file=fn_log, quote=F, row.names=F, col.names=F)
+  
   # create directories
   chr_dir <- paste0(params$outdir, "/", c, "/")
   if (!dir.exists(chr_dir)) {
@@ -141,6 +143,10 @@ for (c in unique(refseq$chr)) {
   
   # concatenation of fastas
   fn_concat <- paste0(concat_dir, c, "_concat.fa")
+  if (file.exists(fn_concat)) {
+    ls_concat <- c(ls_concat, fn_concat)
+    next
+  }
   
   str_fasta <- paste(ls_fasta, collapse = " ")
   cmd <- paste(params$dir_msaview,
@@ -155,8 +161,7 @@ for (c in unique(refseq$chr)) {
 }
 
 # concatenation of all chromosomes
-write.table(c("", "ALL"),
-              file=fn_log, quote=F, row.names=F, col.names=F)
+write.table(c("", "ALL"), file=fn_log, quote=F, row.names=F, col.names=F)
 
 all_dir <- paste0(params$outdir, "/chr_all/")
 if (!dir.exists(all_dir)) {
@@ -164,13 +169,14 @@ if (!dir.exists(all_dir)) {
 }
 
 fn_concat_all <- paste0(all_dir, "all_concat.fa")
-
-str_concat <- paste(ls_concat, collapse = " ")
-cmd <- paste(params$dir_seqkit, "concat", str_concat, ">", fn_concat_all)
-log4r::info(fn_logger, paste("Run:", cmd))
-
-system(cmd)
-system(paste(params$dir_iqtree2, "-s", fn_concat_all))
+if (!file.exists(fn_concat_all)) {
+  str_concat <- paste(ls_concat, collapse = " ")
+  cmd <- paste(params$dir_seqkit, "concat", str_concat, ">", fn_concat_all)
+  log4r::info(fn_logger, paste("Run:", cmd))
+  
+  system(cmd)
+  system(paste(params$dir_iqtree2, "-s", fn_concat_all))
+}
 
 stopCluster(nwcl)
 ```

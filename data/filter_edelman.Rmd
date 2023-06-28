@@ -1,0 +1,68 @@
+---
+title: "Data Filtering for Edelman et al. (2019)"
+params:
+  data_outdir: ""
+  thread: 1
+  outdir: ""
+  
+  dir_gblocks: ""
+  params_gblocks: ""
+---
+
+```{r, include=FALSE}
+# store initial system time
+sys_tic <- Sys.time()
+
+# load libraries
+library(doSNOW)
+
+# create outdir
+currentdir <- paste0(params$outdir, "/gblocks/")
+if (!dir.exists(currentdir)) {
+  dir.create(currentdir, recursive = T)
+}
+
+# create log file
+fn_log <- paste0(currentdir, "filter_edelman.log")
+log_appender <- log4r::file_appender(fn_log, append = TRUE, layout = log4r::default_log_layout())
+fn_logger <- log4r::logger(threshold = "INFO", appenders = log_appender)
+
+if (!file.exists(fn_log)) {
+  write.table("EmpNOW", file=fn_log, quote=F, row.names=F, col.names=F)
+}
+
+knitr::opts_knit$set(root.dir = currentdir)
+```
+
+```{r run, include=FALSE}
+ls_chr <- list.dirs(params$data_outdir, full.names=F, recursive=F)
+ls_chr <- subset(ls_chr, grepl("chr+", ls_chr))
+
+foreach (i=ls_chr) %dopar% {
+  input_aln <- ifelse(i=="chr_all",
+                      paste0(params$data_outdir,"/",i,"/all_concat.fa"),
+                      paste0(params$data_outdir,"/",i,"/fasta/concatenation/",i,"_concat.fa"))
+  
+  if (!file.exists(input_aln)) {
+    log4r::warn(fn_logger, paste("File not found: FASTA alignment for", cmd))
+    return(NULL)
+  }
+  
+  cmd <- paste(params$dir_gblocks, input_aln, params$params_gblocks)
+  log4r::info(fn_logger, paste("Run:", cmd))
+  
+  system(cmd)
+  system(paste0("mv ", input_aln, "-gb ", currentdir))
+  
+  return(NULL)
+}
+```
+
+```{r, include=FALSE}
+# store final system time
+sys_toc <- Sys.time()
+
+# write the system time in log file
+write.table(c("", paste0("Total elapsed time: ", round(as.numeric(difftime(sys_toc, sys_tic, units = "mins")), 3), " mins")),
+            file=fn_log, quote=F, row.names=F, col.names=F, append=T)
+```
