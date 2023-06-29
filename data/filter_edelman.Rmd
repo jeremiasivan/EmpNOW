@@ -38,6 +38,10 @@ knitr::opts_knit$set(root.dir = currentdir)
 ls_chr <- list.dirs(params$data_outdir, full.names=F, recursive=F)
 ls_chr <- subset(ls_chr, grepl("chr+", ls_chr))
 
+# create doSNOW cluster
+nwcl <- makeCluster(params$thread)
+doSNOW::registerDoSNOW(nwcl)
+
 foreach (i=ls_chr) %dopar% {
   input_aln <- ifelse(i=="chr_all",
                       paste0(params$data_outdir,"/",i,"/all_concat.fa"),
@@ -56,6 +60,8 @@ foreach (i=ls_chr) %dopar% {
   
   return(NULL)
 }
+
+stopCluster(nwcl)
 ```
 
 ```{r, include=FALSE}

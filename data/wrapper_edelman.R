@@ -40,7 +40,7 @@ rmarkdown::render(input=paste0(rmddir,"/../data/data_edelman.Rmd"),
                   quiet=TRUE)
 
 # data filtering
-rmarkdown::render(input=paste0(rmddir,"../data/filter_edelman.Rmd"),
+rmarkdown::render(input=paste0(rmddir,"/../data/filter_edelman.Rmd"),
                   output_file=paste0(outdir,"/filter_edelman.html"),
                   params=list(data_outdir=outdir, thread=thread, outdir=run_outdir,
                               dir_gblocks=dir_gblocks, params_gblocks=params_gblocks),
