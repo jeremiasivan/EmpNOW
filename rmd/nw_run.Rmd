@@ -198,7 +198,7 @@ nwcl <- makeCluster(params$thread)
 doSNOW::registerDoSNOW(nwcl)
 
 # iterate through window sizes
-ls_seqlen <- foreach (i = wsize, .combine=c) %dopar% {
+ls_seqlen <- foreach (i = wsize, .combine='c') %dopar% {
   library(data.table)
   library(dplyr)
   # library(ggplot2)
