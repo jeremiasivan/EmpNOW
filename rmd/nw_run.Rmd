@@ -178,6 +178,7 @@ for (i in wsize) {
                       "-S", fastadir,
                       "-pre", prefix,
                       "-T", tthread,
+                      "-blmin", 1/i,
                       "-cptime 1000000 --quiet -redo")
   
   if (is.null(params$outgroup) || params$outgroup == ""){
